@@ -2,19 +2,13 @@ package chen.springframework.beans.factory.xml;
 
 import chen.springframework.beans.BeansException;
 import chen.springframework.beans.factory.support.AbstractBeanDefinitionReader;
-import chen.springframework.beans.factory.support.BeanDefinitionReader;
 import chen.springframework.beans.factory.support.BeanDefinitionRegistry;
-import chen.springframework.core.io.InputStreamSource;
 import chen.springframework.core.io.Resource;
 import chen.springframework.core.io.ResourceLoader;
-import cn.hutool.core.util.XmlUtil;
 import com.sun.istack.internal.Nullable;
 import org.w3c.dom.Document;
-
-import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Constructor;
 
 public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 
