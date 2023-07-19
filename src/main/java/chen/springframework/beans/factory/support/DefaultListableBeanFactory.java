@@ -2,6 +2,7 @@ package chen.springframework.beans.factory.support;
 
 import chen.springframework.beans.BeansException;
 import chen.springframework.beans.factory.config.BeanDefinition;
+import cn.hutool.core.lang.Assert;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,6 +24,17 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
     @Override
     public void registerBeanDefinition(String beanName, BeanDefinition beanDefinition) {
         beanDefinitionMap.put(beanName, beanDefinition);
+    }
+
+    @Override
+    public int getBeanDefinitionCount() {
+        return beanDefinitionMap.size();
+    }
+
+    @Override
+    public boolean containsBeanDefinition(String beanName) {
+        Assert.notNull(beanName, "Bean name must not be null");
+        return this.beanDefinitionMap.containsKey(beanName);
     }
 
 }

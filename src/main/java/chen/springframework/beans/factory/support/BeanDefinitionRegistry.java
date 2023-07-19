@@ -8,4 +8,8 @@ public interface BeanDefinitionRegistry {
     BeanDefinition getBeanDefinition(String beanName) throws BeansException;
 
     void registerBeanDefinition(String beanName, BeanDefinition beanDefinition);
+
+    int getBeanDefinitionCount();
+
+    boolean containsBeanDefinition(String beanName);
 }
