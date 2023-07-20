@@ -14,6 +14,10 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
         this.resourceLoader = new DefaultResourceLoader();
     }
 
+    public void setResourceLoader(ResourceLoader resourceLoader) {
+        this.resourceLoader = resourceLoader;
+    }
+
     @Override
     public BeanDefinitionRegistry getRegistry() {
         return registry;

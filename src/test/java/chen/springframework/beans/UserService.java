@@ -28,7 +28,23 @@ public class UserService {
         this.name = name;
     }
 
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public UserDao getUserDao() {
+        return userDao;
+    }
+
+    public void setUserDao(UserDao userDao) {
+        this.userDao = userDao;
+    }
+
     public void userInfo() {
-        System.out.println("输出用户名：" + userDao.getUserName(id) + "  " + name);
+        System.out.println("输出用户名：" + userDao.getUserName(id) + "  " + name + "  id: " +id);
     }
 }
