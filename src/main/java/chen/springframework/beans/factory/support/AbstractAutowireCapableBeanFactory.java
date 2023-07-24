@@ -1,18 +1,27 @@
 package chen.springframework.beans.factory.support;
 
+import chen.springframework.beans.BeanNameAware;
 import chen.springframework.beans.BeansException;
 import chen.springframework.beans.MutablePropertyValues;
 import chen.springframework.beans.PropertyValue;
+import chen.springframework.beans.factory.*;
 import chen.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import chen.springframework.beans.factory.config.BeanDefinition;
 import chen.springframework.beans.factory.config.BeanPostProcessor;
 import chen.springframework.beans.factory.config.BeanReference;
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.StrUtil;
+
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 
 public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFactory implements AutowireCapableBeanFactory {
 
     private InstantiationStrategy instantiationStrategy = new SimpleInstantiationStrategy();
+
+    public void setInstantiationStrategy(InstantiationStrategy instantiationStrategy) {
+        this.instantiationStrategy = instantiationStrategy;
+    }
 
     @Override
     protected Object createBean(String beanName, BeanDefinition beanDefinition, Object[] args) throws BeansException {
@@ -25,6 +34,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
         } catch (Exception e) {
             throw new BeansException("Instantiation of bean failed", e);
         }
+
+        registerDisposableBeanIfNecessary(beanName, bean, beanDefinition);
 
         addSingleton(beanName, bean);
         return bean;
@@ -69,18 +80,58 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
     }
 
     protected Object initializeBean(String beanName, Object bean, BeanDefinition bd) {
+        invokeAwareMethods(beanName, bean);
+
         Object wrappedBean = bean;
 
         wrappedBean = applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
 
-        invokeInitMethods(beanName, wrappedBean, bd);
+        try {
+            invokeInitMethods(beanName, wrappedBean, bd);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
 
         return wrappedBean;
     }
 
-    protected void invokeInitMethods(String beanName, Object bean, BeanDefinition bd) {}
+    private void invokeAwareMethods(String beanName, Object bean) {
+        if (bean instanceof Aware) {
+            if (bean instanceof BeanNameAware) {
+                ((BeanNameAware) bean).setBeanName(beanName);
+            }
+            if (bean instanceof BeanClassLoaderAware) {
+                ClassLoader bcl = getBeanClassLoader();
+                if (bcl != null) {
+                    ((BeanClassLoaderAware) bean).setBeanClassLoader(bcl);
+                }
+            }
+            if (bean instanceof BeanFactoryAware) {
+                ((BeanFactoryAware) bean).setBeanFactory(AbstractAutowireCapableBeanFactory.this);
+            }
+        }
+    }
+
+    protected void invokeInitMethods(String beanName, Object bean, BeanDefinition bd) throws Exception {
+
+        boolean isInitializingBean = (bean instanceof InitializingBean);
+
+        if (isInitializingBean) {
+            ((InitializingBean) bean).afterPropertiesSet();
+        }
+
+        if (bd != null ) {
+            String initMethodName = bd.getInitMethodName();
+            if (StrUtil.isNotEmpty(initMethodName) && !(isInitializingBean && "afterPropertiesSet".equals(initMethodName))) {
+                Class<?> beanClass = bd.getBeanClass();
+                Method method = beanClass.getMethod(initMethodName);
+                method.invoke(bean);
+            }
+        }
+
+    }
 
     @Override
     public Object applyBeanPostProcessorsBeforeInitialization(Object existingBean, String beanName) throws BeansException {
@@ -104,5 +155,11 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
             result = current;
         }
         return result;
+    }
+
+    protected void registerDisposableBeanIfNecessary(String beanName, Object bean, BeanDefinition beanDefinition) {
+        if (bean instanceof DisposableBean || StrUtil.isNotEmpty(beanDefinition.getDestroyMethodName())) {
+            registerDisposableBean(beanName, new DisposableBeanAdapter(bean, beanName, beanDefinition));
+        }
     }
 }

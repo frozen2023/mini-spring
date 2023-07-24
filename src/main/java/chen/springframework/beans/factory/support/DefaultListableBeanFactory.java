@@ -61,4 +61,9 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
             getBean(beanName);
         }
     }
+
+    @Override
+    public void destroySingletons() {
+         super.destroySingletons();
+    }
 }

@@ -9,6 +9,26 @@ public class BeanDefinition {
 
     private MutablePropertyValues propertyValues;
 
+    private String initMethodName;
+
+    private String destroyMethodName;
+
+    public String getInitMethodName() {
+        return initMethodName;
+    }
+
+    public void setInitMethodName(String initMethodName) {
+        this.initMethodName = initMethodName;
+    }
+
+    public String getDestroyMethodName() {
+        return destroyMethodName;
+    }
+
+    public void setDestroyMethodName(String destroyMethodName) {
+        this.destroyMethodName = destroyMethodName;
+    }
+
     public BeanDefinition(Class beanClass) {
         this.beanClass = beanClass;
         this.propertyValues = new MutablePropertyValues();
@@ -17,6 +37,13 @@ public class BeanDefinition {
     public BeanDefinition(Class beanClass, MutablePropertyValues propertyValues) {
         this.beanClass = beanClass;
         this.propertyValues = propertyValues != null ? propertyValues : new MutablePropertyValues();
+    }
+
+    public BeanDefinition(Class beanClass, MutablePropertyValues propertyValues, String initMethodName, String destroyMethodName) {
+        this.beanClass = beanClass;
+        this.propertyValues = propertyValues;
+        this.initMethodName = initMethodName;
+        this.destroyMethodName = destroyMethodName;
     }
 
     public Class getBeanClass() {

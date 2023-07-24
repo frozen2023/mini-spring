@@ -1,10 +1,10 @@
 package chen.springframework.beans.factory.support;
 
 import chen.springframework.beans.BeansException;
-import chen.springframework.beans.factory.BeanFactory;
 import chen.springframework.beans.factory.config.BeanDefinition;
 import chen.springframework.beans.factory.config.BeanPostProcessor;
 import chen.springframework.beans.factory.config.ConfigurableBeanFactory;
+import chen.springframework.util.ClassUtils;
 import cn.hutool.core.lang.Assert;
 import com.sun.istack.internal.Nullable;
 
@@ -14,6 +14,12 @@ import java.util.List;
 public abstract class AbstractBeanFactory extends DefaultSingletonBeanRegistry implements ConfigurableBeanFactory {
 
     private final List<BeanPostProcessor> beanPostProcessors = new ArrayList<>();
+
+    private ClassLoader beanClassLoader = ClassUtils.getDefaultClassLoader();
+
+    public ClassLoader getBeanClassLoader() {
+        return beanClassLoader;
+    }
 
     @Override
     public Object getBean(String name) throws BeansException {

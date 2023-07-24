@@ -29,11 +29,14 @@ public class ContextTest {
     @Test
     public void test_xml() {
         // 1.初始化 BeanFactory
-        ClassPathXmlApplicationContext applicationContext = new ClassPathXmlApplicationContext("classpath:postProcessor.xml");
+        ClassPathXmlApplicationContext applicationContext = new ClassPathXmlApplicationContext("classpath:spring.xml");
+        applicationContext.registerShutdownHook();
 
         // 2. 获取Bean对象调用方法
         UserService userService = (UserService) applicationContext.getBean("userService");
         userService.userInfo();
+        System.out.println("ApplicationContext:" + userService.getApplicationContext());
+        System.out.println("BeanFactory:" + userService.getBeanFactory());
     }
 
 }

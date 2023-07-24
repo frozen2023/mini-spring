@@ -13,10 +13,22 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
     public void refresh() throws BeansException {
 
         ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
+        prepareBeanFactory(beanFactory);
         invokeBeanFactoryPostProcessors(beanFactory);
         registerBeanPostProcessors(beanFactory);
         finishBeanFactoryInitialization(beanFactory);
 
+    }
+
+    @Override
+    public void registerShutdownHook() {
+        Thread shutdownHook = new Thread(this::close);
+        Runtime.getRuntime().addShutdownHook(shutdownHook);
+    }
+
+    @Override
+    public void close() {
+        getBeanFactory().destroySingletons();
     }
 
     protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {
@@ -39,6 +51,10 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
     protected abstract void refreshBeanFactory() throws BeansException;
 
     protected abstract ConfigurableListableBeanFactory getBeanFactory();
+
+    protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
+        beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
+    }
 
     @Override
     public Object getBean(String name) throws BeansException {
