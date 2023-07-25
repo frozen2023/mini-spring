@@ -1,17 +1,19 @@
 package chen.springframework.beans.factory.support;
 
 import chen.springframework.beans.BeansException;
+import chen.springframework.beans.factory.DisposableBean;
+import chen.springframework.beans.factory.FactoryBean;
 import chen.springframework.beans.factory.config.BeanDefinition;
 import chen.springframework.beans.factory.config.BeanPostProcessor;
 import chen.springframework.beans.factory.config.ConfigurableBeanFactory;
 import chen.springframework.util.ClassUtils;
 import cn.hutool.core.lang.Assert;
+import cn.hutool.core.util.StrUtil;
 import com.sun.istack.internal.Nullable;
-
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class AbstractBeanFactory extends DefaultSingletonBeanRegistry implements ConfigurableBeanFactory {
+public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport implements ConfigurableBeanFactory {
 
     private final List<BeanPostProcessor> beanPostProcessors = new ArrayList<>();
 
@@ -19,6 +21,10 @@ public abstract class AbstractBeanFactory extends DefaultSingletonBeanRegistry i
 
     public ClassLoader getBeanClassLoader() {
         return beanClassLoader;
+    }
+
+    public void setBeanClassLoader(ClassLoader beanClassLoader) {
+        this.beanClassLoader = beanClassLoader;
     }
 
     @Override
@@ -32,12 +38,28 @@ public abstract class AbstractBeanFactory extends DefaultSingletonBeanRegistry i
     }
 
     protected Object doGetBean(String name, Object[] args) {
-        Object bean = getSingleton(name);
-        if (bean != null) {
-            return bean;
+        Object sharedInstance = getSingleton(name);
+        if (sharedInstance != null) {
+            return getObjectForBeanInstance(sharedInstance, name);
         }
         BeanDefinition beanDefinition = getBeanDefinition(name);
-        return createBean(name, beanDefinition, args);
+        Object bean = createBean(name, beanDefinition, args);
+        return getObjectForBeanInstance(bean, name);
+    }
+
+    protected Object getObjectForBeanInstance(Object beanInstance, String name) {
+        if (!(beanInstance instanceof FactoryBean)) {
+            return beanInstance;
+        }
+
+        Object object = getCachedObjectForFactoryBean(name);
+
+        if (object == null) {
+            FactoryBean<?> factoryBean = (FactoryBean<?>) beanInstance;
+            object = getObjectFromFactoryBean(factoryBean, name);
+        }
+
+        return object;
     }
 
     @Override
@@ -58,4 +80,16 @@ public abstract class AbstractBeanFactory extends DefaultSingletonBeanRegistry i
     protected abstract BeanDefinition getBeanDefinition(String beanName) throws BeansException;
 
     protected abstract Object createBean(String beanName, BeanDefinition beanDefinition, @Nullable Object[] args) throws BeansException;
+
+    protected void registerDisposableBeanIfNecessary(String beanName, Object bean, BeanDefinition beanDefinition) {
+
+        if (!beanDefinition.isPrototype()) {
+            if (beanDefinition.isSingleton()) {
+                if (bean instanceof DisposableBean || StrUtil.isNotEmpty(beanDefinition.getDestroyMethodName())) {
+                    registerDisposableBean(beanName, new DisposableBeanAdapter(bean, beanName, beanDefinition));
+                }
+            }
+        }
+    }
+
 }

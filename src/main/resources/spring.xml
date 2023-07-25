@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans>
 
-    <bean id="userDao" class="chen.springframework.beans.UserDao" init-method="initDataMethod" destroy-method="destroyDataMethod"/>
+    <!--<bean id="userDao" class="chen.springframework.beans.UserDao" init-method="initDataMethod" destroy-method="destroyDataMethod"/>-->
 
     <bean id="userService" class="chen.springframework.beans.UserService">
         <property name="name" value="frozen"/>
         <property name="id" value="123"/>
-        <property name="userDao" ref="userDao"/>
+        <property name="userDao" ref="userDaoFactoryBean"/>
     </bean>
+
+    <bean id="userDaoFactoryBean" class="chen.springframework.beans.UserDaoFactoryBean"/>
 
 </beans>

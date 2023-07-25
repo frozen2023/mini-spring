@@ -5,6 +5,12 @@ import chen.springframework.beans.MutablePropertyValues;
 // bean 定义类
 public class BeanDefinition {
 
+    String SCOPE_SINGLETON = ConfigurableBeanFactory.SCOPE_SINGLETON;
+
+    String SCOPE_PROTOTYPE = ConfigurableBeanFactory.SCOPE_PROTOTYPE;
+
+    public static final String SCOPE_DEFAULT = "";
+
     private Class beanClass;
 
     private MutablePropertyValues propertyValues;
@@ -13,21 +19,7 @@ public class BeanDefinition {
 
     private String destroyMethodName;
 
-    public String getInitMethodName() {
-        return initMethodName;
-    }
-
-    public void setInitMethodName(String initMethodName) {
-        this.initMethodName = initMethodName;
-    }
-
-    public String getDestroyMethodName() {
-        return destroyMethodName;
-    }
-
-    public void setDestroyMethodName(String destroyMethodName) {
-        this.destroyMethodName = destroyMethodName;
-    }
+    private String scope = SCOPE_DEFAULT;
 
     public BeanDefinition(Class beanClass) {
         this.beanClass = beanClass;
@@ -52,6 +44,38 @@ public class BeanDefinition {
 
     public void setBeanClass(Class beanClass) {
         this.beanClass = beanClass;
+    }
+
+    public String getInitMethodName() {
+        return initMethodName;
+    }
+
+    public void setInitMethodName(String initMethodName) {
+        this.initMethodName = initMethodName;
+    }
+
+    public String getDestroyMethodName() {
+        return destroyMethodName;
+    }
+
+    public void setDestroyMethodName(String destroyMethodName) {
+        this.destroyMethodName = destroyMethodName;
+    }
+
+    public String getScope() {
+        return this.scope;
+    }
+
+    public void setScope(String scope) {
+        this.scope = scope;
+    }
+
+    public boolean isSingleton() {
+        return SCOPE_SINGLETON.equals(this.scope) || SCOPE_DEFAULT.equals(this.scope);
+    }
+
+    public boolean isPrototype() {
+        return SCOPE_PROTOTYPE.equals(this.scope);
     }
 
     public MutablePropertyValues getPropertyValues() {

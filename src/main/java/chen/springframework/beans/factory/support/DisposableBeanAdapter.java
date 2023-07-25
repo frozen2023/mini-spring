@@ -1,6 +1,5 @@
 package chen.springframework.beans.factory.support;
 
-import chen.springframework.beans.BeansException;
 import chen.springframework.beans.factory.DisposableBean;
 import chen.springframework.beans.factory.config.BeanDefinition;
 import cn.hutool.core.util.StrUtil;

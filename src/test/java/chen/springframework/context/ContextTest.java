@@ -35,8 +35,6 @@ public class ContextTest {
         // 2. 获取Bean对象调用方法
         UserService userService = (UserService) applicationContext.getBean("userService");
         userService.userInfo();
-        System.out.println("ApplicationContext:" + userService.getApplicationContext());
-        System.out.println("BeanFactory:" + userService.getBeanFactory());
     }
 
 }
