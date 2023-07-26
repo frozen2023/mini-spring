@@ -1,0 +1,14 @@
+package chen.springframework.context.event;
+
+import chen.springframework.context.ApplicationEvent;
+import chen.springframework.context.ApplicationListener;
+
+public interface ApplicationEventMulticaster {
+
+    void addApplicationListener(ApplicationListener<?> listener);
+
+    void removeApplicationListener(ApplicationListener<?> listener);
+
+    void multicastEvent(ApplicationEvent event);
+
+}

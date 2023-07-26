@@ -37,4 +37,11 @@ public class ContextTest {
         userService.userInfo();
     }
 
+    @Test
+    public void test_event() {
+        ClassPathXmlApplicationContext applicationContext = new ClassPathXmlApplicationContext("classpath:listener.xml");
+        applicationContext.publishEvent(new CustomEvent(applicationContext, 1234, "成功了！"));
+        applicationContext.registerShutdownHook();
+    }
+
 }
