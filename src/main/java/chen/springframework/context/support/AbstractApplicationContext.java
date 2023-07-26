@@ -5,10 +5,7 @@ import chen.springframework.beans.factory.config.ConfigurableListableBeanFactory
 import chen.springframework.context.ApplicationEvent;
 import chen.springframework.context.ApplicationListener;
 import chen.springframework.context.ConfigurableApplicationContext;
-import chen.springframework.context.event.ApplicationContextEvent;
-import chen.springframework.context.event.ApplicationEventMulticaster;
-import chen.springframework.context.event.ContextClosedEvent;
-import chen.springframework.context.event.SimpleApplicationEventMulticaster;
+import chen.springframework.context.event.*;
 import chen.springframework.core.io.DefaultResourceLoader;
 import cn.hutool.core.lang.Assert;
 
@@ -100,7 +97,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
     }
 
     protected void finishRefresh() {
-        publishEvent(new ApplicationContextEvent(this));
+        publishEvent(new ContextRefreshedEvent(this));
     }
 
     public Set<ApplicationListener<?>> getApplicationListeners() {
