@@ -1,16 +1,12 @@
 package chen.springframework.beans.factory.support;
 
-import chen.springframework.beans.BeanNameAware;
-import chen.springframework.beans.BeansException;
-import chen.springframework.beans.MutablePropertyValues;
-import chen.springframework.beans.PropertyValue;
+import chen.springframework.beans.*;
 import chen.springframework.beans.factory.*;
-import chen.springframework.beans.factory.config.AutowireCapableBeanFactory;
-import chen.springframework.beans.factory.config.BeanDefinition;
-import chen.springframework.beans.factory.config.BeanPostProcessor;
-import chen.springframework.beans.factory.config.BeanReference;
+import chen.springframework.beans.factory.config.*;
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.thread.threadlocal.NamedInheritableThreadLocal;
 import cn.hutool.core.util.StrUtil;
+import com.sun.istack.internal.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -19,30 +15,88 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
     private InstantiationStrategy instantiationStrategy = new SimpleInstantiationStrategy();
 
+    private boolean allowCircularReferences = true;
+
     public void setInstantiationStrategy(InstantiationStrategy instantiationStrategy) {
         this.instantiationStrategy = instantiationStrategy;
     }
 
+    public void setAllowCircularReferences(boolean allowCircularReferences) {
+        this.allowCircularReferences = allowCircularReferences;
+    }
+
     @Override
     protected Object createBean(String beanName, BeanDefinition beanDefinition, Object[] args) throws BeansException {
-        Object bean = null;
-        try {
-            bean = createBeanInstance(beanName, beanDefinition, args);
-            applyPropertyValues(beanName, bean, beanDefinition);
-            bean = initializeBean(beanName, bean, beanDefinition);
 
+        Object bean = resolveBeforeInstantiation(beanName, beanDefinition);
+        if (bean != null) {
+            return bean;
+        }
+
+        return doCreateBean(beanName, beanDefinition, args);
+    }
+
+    protected Object resolveBeforeInstantiation(String beanName, BeanDefinition bd) {
+        Object bean = null;
+        if (hasInstantiationAwareBeanPostProcessors()) {
+            Class<?> targetType  = bd.getBeanClass();
+            bean = applyBeanPostProcessorsBeforeInstantiation(targetType, beanName);
+            if (bean != null) {
+                applyBeanPostProcessorsAfterInitialization(bean, beanName);
+            }
+        }
+        return bean;
+    }
+
+    protected Object applyBeanPostProcessorsBeforeInstantiation(Class<?> beanClass, String beanName) {
+        for (InstantiationAwareBeanPostProcessor bpp : getBeanPostProcessorCache().instantiationAware) {
+            Object result = bpp.postProcessBeforeInstantiation(beanClass, beanName);
+            if (result != null) {
+                return result;
+            }
+        }
+        return null;
+    }
+
+    protected Object doCreateBean(String beanName, BeanDefinition bd, Object[] args)
+            throws BeansException {
+
+        Object bean;
+        Object exposedObject;
+        try {
+            bean = createBeanInstance(beanName, bd, args);
+
+            boolean earlySingletonExposure = (bd.isSingleton() && this.allowCircularReferences &&
+                    isSingletonCurrentlyInCreation(beanName));
+            if (earlySingletonExposure) {
+                Object finalBean = bean;
+                addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, bd, finalBean));
+            }
+
+            exposedObject = bean;
+            populateBean(beanName, bd, bean);
+            exposedObject = initializeBean(beanName, exposedObject, bd);
+
+
+            if (earlySingletonExposure) {
+                // 从二级缓存中获取代理对象
+                Object earlySingletonReference = getSingleton(beanName, false);
+                if (earlySingletonReference != null) {
+                    if (exposedObject == bean) {
+                        exposedObject = earlySingletonReference;
+                    }
+                }
+            }
         } catch (Exception e) {
             throw new BeansException("Instantiation of bean failed", e);
         }
 
-        registerDisposableBeanIfNecessary(beanName, bean, beanDefinition);
+        registerDisposableBeanIfNecessary(beanName, bean, bd);
 
-        if (beanDefinition.isSingleton()) {
-            addSingleton(beanName, bean);
-        }
-
-        return bean;
+        return exposedObject;
     }
+
+
 
     protected Object createBeanInstance(String beanName, BeanDefinition beanDefinition, Object[] args) {
         Constructor<?> constructor = null;
@@ -61,9 +115,48 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
     }
 
-    protected void applyPropertyValues(String beanName, Object bean, BeanDefinition beanDefinition) {
+    protected Object getEarlyBeanReference(String beanName, BeanDefinition bd, Object bean) {
+        Object exposedObject = bean;
+        if (hasInstantiationAwareBeanPostProcessors()) {
+            for (SmartInstantiationAwareBeanPostProcessor bp : getBeanPostProcessorCache().smartInstantiationAware) {
+                exposedObject = bp.getEarlyBeanReference(exposedObject, beanName);
+            }
+        }
+        return exposedObject;
+    }
+
+    protected void populateBean(String beanName, BeanDefinition bd, Object bean) {
+        // 是否允许属性填充
+        if (hasInstantiationAwareBeanPostProcessors()) {
+            for (InstantiationAwareBeanPostProcessor bp : getBeanPostProcessorCache().instantiationAware) {
+                if (!bp.postProcessAfterInstantiation(bean, beanName)) {
+                    return;
+                }
+            }
+        }
+
+        // 属性填充前操作
+        PropertyValues pvs = bd.getPropertyValues();
+        if (hasInstantiationAwareBeanPostProcessors()) {
+            for (InstantiationAwareBeanPostProcessor bp : getBeanPostProcessorCache().instantiationAware) {
+                PropertyValues pvsToUse = bp.postProcessProperties(pvs, bean, beanName);
+                if (pvsToUse == null) {
+                    return;
+                }
+                pvs = pvsToUse;
+            }
+        }
+
+        // 属性填充
+        if (pvs != null) {
+            applyPropertyValues(beanName, bean, bd, pvs);
+        }
+
+    }
+
+    protected void applyPropertyValues(String beanName, Object bean, BeanDefinition beanDefinition, PropertyValues pvs) {
         try {
-            MutablePropertyValues propertyValues = beanDefinition.getPropertyValues();
+            MutablePropertyValues propertyValues = (MutablePropertyValues) pvs;
 
             for (PropertyValue propertyValue : propertyValues.getPropertyValues()) {
 
