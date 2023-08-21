@@ -11,4 +11,5 @@
 
     <bean id="userDaoFactoryBean" class="chen.springframework.beans.UserDaoFactoryBean"/>
 
+
 </beans>

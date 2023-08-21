@@ -2,6 +2,8 @@ package chen.springframework.beans.factory.config;
 
 import chen.springframework.beans.MutablePropertyValues;
 
+import java.awt.*;
+
 // bean 定义类
 public class BeanDefinition {
 
@@ -44,6 +46,10 @@ public class BeanDefinition {
 
     public void setBeanClass(Class beanClass) {
         this.beanClass = beanClass;
+    }
+
+    public String getBeanClassName() {
+        return getBeanClass().getName();
     }
 
     public String getInitMethodName() {

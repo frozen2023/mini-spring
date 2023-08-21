@@ -3,7 +3,7 @@ package chen.springframework.context.support;
 import chen.springframework.beans.factory.support.DefaultListableBeanFactory;
 import chen.springframework.beans.factory.xml.XmlBeanDefinitionReader;
 
-public abstract class AbstractXmlApplicationContext extends AbstractRefreshableApplicationContext {
+public abstract class AbstractXmlApplicationContext extends AbstractRefreshableConfigApplicationContext {
 
     @Override
     protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) {
@@ -16,5 +16,4 @@ public abstract class AbstractXmlApplicationContext extends AbstractRefreshableA
         }
     }
 
-    protected abstract String[] getConfigLocations();
 }

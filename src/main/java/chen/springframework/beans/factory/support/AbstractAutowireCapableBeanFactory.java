@@ -26,6 +26,13 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
     }
 
     @Override
+    public <T> T createBean(Class<T> beanClass) throws BeansException {
+        BeanDefinition bd = new BeanDefinition(beanClass);
+        bd.setScope("prototype");
+        return (T) createBean(beanClass.getName(), bd, null);
+    }
+
+    @Override
     protected Object createBean(String beanName, BeanDefinition beanDefinition, Object[] args) throws BeansException {
 
         Object bean = resolveBeforeInstantiation(beanName, beanDefinition);

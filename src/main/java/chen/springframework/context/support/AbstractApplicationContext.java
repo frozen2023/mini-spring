@@ -1,6 +1,7 @@
 package chen.springframework.context.support;
 
 import chen.springframework.beans.BeansException;
+import chen.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import chen.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import chen.springframework.context.ApplicationEvent;
 import chen.springframework.context.ApplicationListener;
@@ -29,6 +30,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
 
         prepareBeanFactory(beanFactory);
 
+        postProcessBeanFactory(beanFactory);
+
         invokeBeanFactoryPostProcessors(beanFactory);
 
         registerBeanPostProcessors(beanFactory);
@@ -56,6 +59,9 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
     protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {
         refreshBeanFactory();
         return getBeanFactory();
+    }
+
+    protected void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
     }
 
     protected void invokeBeanFactoryPostProcessors(ConfigurableListableBeanFactory beanFactory) {
@@ -132,6 +138,11 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
     }
 
     @Override
+    public AutowireCapableBeanFactory getAutowireCapableBeanFactory() throws IllegalStateException {
+        return getBeanFactory();
+    }
+
+    @Override
     public Object getBean(String name) throws BeansException {
         return getBeanFactory().getBean(name);
     }
@@ -157,7 +168,32 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
     }
 
     @Override
+    public <T> T getBean(String name, Class<T> requiredType) throws BeansException {
+        return getBeanFactory().getBean(name, requiredType);
+    }
+
+    @Override
+    public boolean isSingleton(String name) {
+        return getBeanFactory().isSingleton(name);
+    }
+
+    @Override
+    public boolean isTypeMatch(String name, Class<?> typeToMatch) {
+        return getBeanFactory().isTypeMatch(name, typeToMatch);
+    }
+
+    @Override
+    public String[] getBeanNamesForType(Class<?> type) {
+        return getBeanFactory().getBeanNamesForType(type);
+    }
+
+    @Override
     public String[] getBeanDefinitionNames() {
         return getBeanFactory().getBeanDefinitionNames();
+    }
+
+    @Override
+    public <T> T getBean(Class<T> requiredType) throws BeansException {
+        return getBeanFactory().getBean(requiredType);
     }
 }

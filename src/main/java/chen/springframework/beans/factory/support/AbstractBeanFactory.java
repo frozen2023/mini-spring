@@ -38,6 +38,11 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
         return doGetBean(name, args);
     }
 
+    @Override
+    public <T> T getBean(String name, Class<T> requiredType) throws BeansException {
+        return (T) getBean(name);
+    }
+
     protected Object doGetBean(String name, Object[] args) {
         Object beanInstance;
         Object sharedInstance = getSingleton(name);
@@ -76,9 +81,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
     public void addBeanPostProcessor(BeanPostProcessor beanPostProcessor) {
         Assert.notNull(beanPostProcessor, "BeanPostProcessor must not be null");
         synchronized (this.beanPostProcessors) {
-            // Remove from old position, if any
             this.beanPostProcessors.remove(beanPostProcessor);
-            // Add to end of list
             this.beanPostProcessors.add(beanPostProcessor);
         }
         resetBeanPostProcessorCache();
@@ -91,7 +94,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
     }
 
     public List<BeanPostProcessor> getBeanPostProcessors() {
-        return beanPostProcessors;
+        return this.beanPostProcessors;
     }
 
     BeanPostProcessorCache getBeanPostProcessorCache() {
@@ -115,6 +118,30 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
     protected boolean hasInstantiationAwareBeanPostProcessors() {
         return !getBeanPostProcessorCache().instantiationAware.isEmpty();
+    }
+
+    @Override
+    public boolean isSingleton(String name) {
+        Object beanInstance = getSingleton(name, false);
+        if (beanInstance != null) {
+            return true;
+        }
+
+        BeanDefinition bd = getBeanDefinition(name);
+        return bd.isSingleton();
+
+    }
+
+    @Override
+    public boolean isTypeMatch(String name, Class<?> typeToMatch) {
+        Object beanInstance = getSingleton(name, false);
+        if (beanInstance != null) {
+            return typeToMatch.isAssignableFrom(beanInstance.getClass());
+        }
+        BeanDefinition beanDefinition = getBeanDefinition(name);
+        Class<?> predictedType = beanDefinition.getBeanClass();
+        return typeToMatch.isAssignableFrom(predictedType);
+
     }
 
     protected abstract BeanDefinition getBeanDefinition(String beanName) throws BeansException;

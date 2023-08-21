@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans>
+
+
+    <bean id="configurationClassPostProcessor" class="chen.springframework.context.annotation.ConfigurationClassPostProcessor"/>
+
+    <bean id="config" class="test.chen.springframework.context.TestConfig"/>
+
+</beans>
