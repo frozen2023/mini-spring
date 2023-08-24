@@ -5,6 +5,7 @@
   - [IOC容器](#IOC容器)
   - [ApplicationContext](#ApplicationContext)
   - [SpringMVC](#SpringMVC)
+  - [循环依赖](#循环依赖)
 
 #### 项目介绍
 > 实现简单的spring框架，完成了ioc容器创建，实现了xml方式和注解两种方式注册bean，部分springaop功能， 以及springmvc模块
@@ -315,6 +316,105 @@ protected ModelAndView invokeHandlerMethod(HttpServletRequest request,
 就是先生成一个可执行的ServletInvocableHandlerMethod，通过这个方法来执行。ServletInvocableHandlerMethod在执行时会调用许多处理器，我这里就实现了一个混合返回值处理器HandlerMethodReturnValueHandlerComposite，在这个处理器的handleReturnValue方法中，会根据其内部所有返回值处理器找出最适配的一个，而这里我就实现了一个RequestResponseBodyMethodProcessor，这个处理器适配方法或者类上有@ResponseBody的注解的方法，在其handleReturnValue方法中，会将方法执行后的返回值直接通过response写回，并标记请求已处理，当请求被标记为已处理时，适配器的handle方法就会返回空的ModelAndView，就没有后续的视图解析了。这就是@RestController或者@ResponseBody直接返回json字符串的原理。(@RestController时@Controller和@ResponseBody的混合注解)
 
 我没有实现视图解析器，因为我感觉现在基本都是前后端分离，后端很少会管视图跳转了(还有就是时间不够)
+
+####  循环依赖
+>循环依赖是什么?
+>
+循环依赖就是两个或两个以上的Bean互相持有对方，形成一个闭环。
+![输入图片说明](/images/循环依赖.1.png)
+>Spring是如何解决循环依赖的?
+
+采用三级缓存。下面是定义在DefaultSingletonBeanRegistry类中的三级缓存:
+```java
+private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);  // 一级缓存
+  
+private final Map<String, Object> earlySingletonObjects = new ConcurrentHashMap<>(16);  // 二级缓存
+  
+private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(16); // 三级缓存
+```
+再看获取单例Bean的核心方法:
+```java
+protected Object getSingleton(String beanName, boolean allowEarlyReference) {  
+    Object singletonObject = this.singletonObjects.get(beanName); // 从一级缓存中获取  
+    if (singletonObject == null) {  
+        singletonObject = this.earlySingletonObjects.get(beanName);  // 从二级缓存中获取
+        if (singletonObject == null && allowEarlyReference) {  
+            synchronized (this.singletonObjects) {  
+                singletonObject = this.singletonObjects.get(beanName);  
+                if (singletonObject == null) {  
+                    singletonObject = this.earlySingletonObjects.get(beanName);  
+                    if (singletonObject == null) {  
+                        ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);  
+                        if (singletonFactory != null) {  
+                            singletonObject = singletonFactory.getObject();  // 从三级缓存中获取
+                            this.earlySingletonObjects.put(beanName, singletonObject);  
+                            this.singletonFactories.remove(beanName);  
+                        }  
+                    }  
+                }  
+            }  
+        }  
+    }  
+    return singletonObject;  
+}
+```
+可以看到获取Bean的顺序是从一级到三级，从三级缓存(ObjectFactory)中获取到的Bean会被存入二级缓存。
+
+>为什么三级缓存能解决循环依赖问题
+
+来看看AbstractAutowireCapableBeanFactory的doCreateBean方法:
+
+```java
+protected Object doCreateBean(String beanName, BeanDefinition bd, Object[] args)  
+        throws BeansException {  
+  
+    Object bean;  
+    Object exposedObject;  
+    try {  
+        bean = createBeanInstance(beanName, bd, args);  
+  
+        boolean earlySingletonExposure = (bd.isSingleton() && this.allowCircularReferences &&  
+                isSingletonCurrentlyInCreation(beanName));  
+        if (earlySingletonExposure) {  
+            Object finalBean = bean;  
+            addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, bd, finalBean));  
+        }  
+  
+        exposedObject = bean;  
+        populateBean(beanName, bd, bean);  
+        exposedObject = initializeBean(beanName, exposedObject, bd);  
+  
+  
+        if (earlySingletonExposure) {  
+            // 从二级缓存中获取代理对象  
+            Object earlySingletonReference = getSingleton(beanName, false);  
+            if (earlySingletonReference != null) {  
+                if (exposedObject == bean) {  
+                    exposedObject = earlySingletonReference;  
+                }  
+            }  
+        }  
+    } catch (Exception e) {  
+        throw new BeansException("Instantiation of bean failed", e);  
+    }  
+  
+    registerDisposableBeanIfNecessary(beanName, bean, bd);  
+  
+    return exposedObject;  
+}
+```
+在创建完实例之后(内部属性值并未被注入)，往三级缓存中添加了一个ObjectFactory，这个ObjectFactory的getObject方法会返回这个初始的实例。
+假如有两个Bean，A和B，A内部引用了B，B内部引用了A，在进行A的创建时，首先将获得A的初始实例的Object Factory存入三级缓存，然后进行A的属性填充，发现引用了B，于是去创建B，在进行B的属性填充时，发现引用了A，于是从三级缓存中获取到了A的初始实例，于是B的最终实例就创建成功了，A获得到了B的最终实例，于是A的最终实例也创建完成了。
+但是有一个问题，上面解决的关键是先创建一个初始实例，如果A在构造方法里引用了B，A的初始实例就无法创建，这种方案就不可行了。当然Spring也提供了新的解决方案，比如懒加载(先注入代理对象，首次使用时再创建对象完成注入)，只是我还没有实现。
+
+>二级缓存的作用？
+
+上述提到的解决方案中貌似只用到了三级缓存，那为什么还要设置一个二级缓存呢？
+
+假设有这样一种情况
+![输入图片说明](/images/循环依赖.2.png)
+在有代理的情况下，怎么保证引用的A是同一个对象?
+进行A的创建，发现A引用B，进行B的创建，有代理的情况下，获取A实例的Object Factory将返回A的代理对象，于是B注入了A的代理对象proxyA，并将proxyA 放入二级缓存中，完成B最终实例的创建，又回到A的创建，发现A引用C，进行C的创建，C在属性注入时发现了二级缓存中B引用的proxyA，于是注入这个proxy A，因此B，C引用的是同一个代理对象。如果没有二级缓存，C就要从三级缓存中获取新的代理对象了。
 
 
 

@@ -14,9 +14,9 @@ public class DefaultSingletonBeanRegistry implements SingletonBeanRegistry {
 
     private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
 
-    private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(16);
-
     private final Map<String, Object> earlySingletonObjects = new ConcurrentHashMap<>(16);
+
+    private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(16);
 
     private final Set<String> singletonsCurrentlyInCreation = new HashSet<>();
 
